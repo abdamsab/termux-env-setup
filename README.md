@@ -75,7 +75,7 @@ touching your system:
 SETUP_DRY_RUN=1 bash ~/termux_setup/termux-setup.sh
 ```
 
-This verifies the architecture, free space, all 58 pkg package names, all 52
+This verifies the architecture, free space, all 60 pkg package names, all 56
 pip package names, and the 4 external URLs, then prints what a real run would
 do. It installs nothing. Note it cannot simulate on-device compilation — a
 full test still needs a spare device or a proot container.
@@ -248,6 +248,7 @@ pkill axs
 | Python messaging | `libzmq` `libffi` |
 | Languages / tools | `nodejs` `npm` `openjdk-17` `golang` `uv` |
 | Apps / services | `postgresql` `ollama` `code-server` `ffmpeg` `proot-distro` `runit` `termux-services` `termux-am` `termux-am-socket` |
+| DB drivers | `unixodbc` (ODBC layer required by `pyodbc` for SQL Server) |
 | SSH | `openssh` `openssh-sftp-server` |
 | Terminal / utilities | `tmux` `micro` `nano` `neofetch` `net-tools` `ripgrep` `jq` `gh` `curl` `wget` `unzip` `dos2unix` `git` `fastfetch` |
 | opencode deps (Step 7) | `glibc` `openssl-glibc` `bash` `ncurses` `wget` |
@@ -259,6 +260,7 @@ pkill axs
 | Group | Packages |
 |---|---|
 | Core data/AI (Step 5) | `jupyterlab` `marimo` `soccerdata` `seleniumbase` `edge-tts` `openai` `fastapi` `uvicorn` |
+| Database drivers (Step 5) | `sqlalchemy` `PyMySQL` `psycopg2-binary` `pyodbc` |
 | HTTP / util | `httpx` `websockets` `orjson` `rich` `requests` `tqdm` `PyYAML` `ruamel.yaml` `tomlkit` `croniter` `python-dotenv` `PyJWT` `PyOTP` `PySocks` `wrapper-tls-requests` `tabulate` |
 | Testing | `behave` `pytest` `pytest-html` `pytest-xdist` `pytest-rerunfailures` `parameterized` `pdbp` `pynose` |
 | Optional (`SETUP_SKIP_OPTD` off) | `mycdp` `msgspec` `narwhals` `tabcompleter` `annotated-doc` `fasteners` `Unidecode` `sbvirtualdisplay` `sortedcontainers` `tenacity` `termcolor` `trio` `trio-websocket` `socksio` `wsproto` `watchfiles` `uvloop` `fire` `docutils` |
@@ -375,6 +377,98 @@ Notes:
 
 ---
 
+## 4c. Other Python packages from TUR
+
+Beyond the wheel-index analysis in §4b, TUR ships Python packages two ways —
+**pip wheels** (the `extra-index-url` from §4b) and **apt `.deb`s**
+(`pkg install`, TUR repo enabled in Step 1). Everything below is prebuilt:
+nothing compiles on-device. Full current lists: `pkg search python-` (apt)
+and the index at https://termux-user-repository.github.io/pypi/ (pip).
+
+### 4c.1 TUR PyPI wheel index (pip)
+
+Prebuilt aarch64 Termux wheels. pip only uses them when a compatible wheel
+exists and otherwise falls back to a source build, so the list is additive
+and safe. Versions / coverage as of Aug 2026:
+
+| Package | Latest wheel | cp314 |
+|---|---|---|
+| `aioquic` | 1.3.0 | yes |
+| `cmake` | 3.28.4 | yes (py3-abi) |
+| `grpcio` | 1.83.0 | yes |
+| `llvmlite` | 0.48.0 | yes |
+| `lxml` | 6.1.1 | yes |
+| `maturin` | 1.14.1 | yes (py3-abi) |
+| `mitmproxy-rs` | 0.12.11 | yes |
+| `ninja` | 1.13.0 | yes (py3-abi) |
+| `numba` | 0.67.0 | yes |
+| `numpy` | 2.5.0 | yes |
+| `pandas` | 3.0.5 | yes |
+| `playwright` | 1.34.0 | yes (py3-abi) |
+| `pydantic-core` | 2.41.5 | yes |
+| `scikit-learn` | 1.9.0 | yes |
+| `scipy` | 1.18.0 | yes |
+| `tiktoken` | 0.13.0 | yes |
+| `tokenizers` | 0.23.1 | yes |
+| `watchfiles` | 1.2.0 | yes |
+| `brotli` | 1.1.0 | no (3.12) |
+| `cryptography` | 45.0.5 | no (3.8/3.12) |
+| `mitmproxy-wireguard` | 0.1.23 | no (3.7/3.11) |
+| `onnxruntime` | 1.22.0 | no (3.8/3.12) |
+| `pillow` | 11.1.0 | no (3.11/3.12) |
+| `polars` | 1.31.0 | no (3.11/3.12) |
+| `pycairo` | 1.23.0 | no (3.10/3.11) |
+| `pycryptodomex` | 3.23.0 | no (3.11/3.12) |
+| `tflite-runtime` | 2.19.0 | no (3.12) |
+
+"cp314" = prebuilt for the current Termux Python (3.14). Wheels without it
+are only available for older Pythons, so on 3.14 pip falls back to a source
+build — see §4c.2 / §6 for the alternatives.
+
+### 4c.2 TUR apt `.deb` Python modules (pkg install)
+
+These install for **any** current Python (incl. 3.14), so prefer them when a
+cp314 wheel is missing (§4c.1). The script already installs `python-pandas`
+(Step 3) and `python-scipy` (`SETUP_SCI_STACK=1`, §4.7) from this same repo.
+
+| Package | Version | What it is |
+|---|---|---|
+| `python-fitsio` | 1.4.2 | FITS I/O (astronomy) |
+| `python-future` | 0.18.2 | py2/py3 compat layer |
+| `python-kivy` | 2.3.1 | GUI framework |
+| `python-mitmproxy-wireguard` | 0.1.23 | WireGuard for mitmproxy |
+| `python-opengl` | 3.1.6 | OpenGL bindings |
+| `python-polars` | 1.41.2 | Rust vectorized dataframe engine |
+| `python-pygame` | 2.6.1 | game library |
+| `python-pywavelets` | 1.9.0 | discrete wavelet transforms |
+| `python-scikit-image` | 0.26.0 | image processing |
+| `python-seledroid` | 1.1.0 | Selenium reimplementation for Android |
+| `python-selenium-is-seledroid` | 4.10.0 | Selenium API on seledroid |
+| `python-tiktoken` | 0.13.0 | OpenAI BPE tokenizer |
+| `python-tls-client` | 1.0.1 | HTTP client |
+| `python-tokenizers` | 0.23.1 | HuggingFace tokenizers |
+
+### 4c.3 Old Python interpreters (TUR apt)
+
+Termux main is rolling-release (currently 3.14), so TUR pins older
+interpreters for projects that need them:
+
+```
+pkg install python3.7 python3.8 python3.9 python3.10 python3.11 python3.13
+```
+
+(`python3.13` = 3.13.13.)
+
+### 4c.4 py3.14 practical notes
+
+- `tiktoken` / `tokenizers`: fine either way (cp314 wheel exists).
+- `polars`: no cp314 wheel → `pkg install python-polars`.
+- `pillow` / `cryptography`: no cp314 wheel → main repo
+  `python-pillow` / `python-cryptography` cover these.
+- `onnxruntime`: no cp314 wheel → use the proot Ubuntu container (§6).
+
+---
+
 ## 5. Verification
 
 Run these and check nothing is missing:
@@ -383,6 +477,7 @@ Run these and check nothing is missing:
 jupyter --version | head -4        # JupyterLab 4.6.3
 marimo --version
 python -c "import PIL, pydantic, zmq"   # native modules import cleanly
+python -c "import sqlalchemy, pymysql, psycopg2, pyodbc"  # SQLAlchemy + DB drivers
 hermes --version
 code-server --version | head -1
 opencode --version                 # in a login shell
@@ -409,6 +504,7 @@ python -c "import scipy; print(scipy.__version__)"
 | `ollama pull` failed | `ollama serve &`, wait 3s, pull again |
 | Slow/stuck compile | Normal for on-device wheels; ensure charger + enough free space |
 | `pip install onnxruntime`/`numba` tries a source build | No cp314 TUR wheel yet; TUR wheel only helps if the Python version matches. Use the proot Ubuntu container instead |
+| `pyodbc` has no drivers (`pyodbc.drivers()` empty) | Expected on Termux/Android: Microsoft ODBC / FreeTDS isn't packaged for ARM. The ODBC plumbing is installed; install a FreeTDS/ODBC driver inside the proot Ubuntu container and point unixODBC at it |
 
 ---
 

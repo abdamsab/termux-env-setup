@@ -54,7 +54,7 @@ if [ -n "${SETUP_DRY_RUN:-}" ]; then
   command -v python >/dev/null 2>&1 && echo "  python      : $(python -V 2>&1)" || echo "  python      : MISSING"
   echo
   echo "pkg package-name check (local apt cache):"
-  PKG_LIST="build-essential clang binutils cmake pkg-config make m4 patch libzmq libffi libcompiler-rt rust llvm lld ndk-sysroot python python-pip python-numpy python-lxml python-psutil python-cryptography python-pillow python-pandas nodejs npm openjdk-17 golang uv postgresql ollama code-server ffmpeg proot-distro runit termux-services termux-am termux-am-socket openssh openssh-sftp-server tmux micro nano neofetch net-tools ripgrep jq gh curl wget unzip dos2unix git fastfetch glibc openssl-glibc bash ncurses python-scipy patchelf"
+  PKG_LIST="build-essential clang binutils cmake pkg-config make m4 patch libzmq libffi libcompiler-rt rust llvm lld ndk-sysroot python python-pip python-numpy python-lxml python-psutil python-cryptography python-pillow python-pandas nodejs npm openjdk-17 golang uv postgresql ollama code-server ffmpeg proot-distro runit termux-services termux-am termux-am-socket openssh openssh-sftp-server tmux micro nano neofetch net-tools ripgrep jq gh curl wget unzip dos2unix git fastfetch glibc openssl-glibc bash ncurses python-scipy patchelf unixodbc"
   miss=0
   for p in $PKG_LIST; do
     if apt-cache show "$p" >/dev/null 2>&1; then printf '  OK   %s\n' "$p"; else printf '  MISS %s\n' "$p"; miss=1; fi
@@ -69,7 +69,7 @@ if [ -n "${SETUP_DRY_RUN:-}" ]; then
   check_url "TUR PyPI index    " "https://termux-user-repository.github.io/pypi/"
   echo
   echo "pip package-name check (PyPI JSON, ~1 min):"
-  PIP_LIST="jupyterlab marimo soccerdata seleniumbase edge-tts openai fastapi uvicorn httpx websockets orjson rich requests tqdm PyYAML ruamel.yaml tomlkit croniter python-dotenv PyJWT PyOTP PySocks wrapper-tls-requests tabulate behave pytest pytest-html pytest-xdist pytest-rerunfailures parameterized pdbp pynose mycdp msgspec narwhals tabcompleter annotated-doc fasteners Unidecode sbvirtualdisplay sortedcontainers tenacity termcolor trio trio-websocket socksio wsproto watchfiles uvloop fire docutils scipy"
+  PIP_LIST="jupyterlab marimo soccerdata seleniumbase edge-tts openai fastapi uvicorn httpx websockets orjson rich requests tqdm PyYAML ruamel.yaml tomlkit croniter python-dotenv PyJWT PyOTP PySocks wrapper-tls-requests tabulate behave pytest pytest-html pytest-xdist pytest-rerunfailures parameterized pdbp pynose sqlalchemy PyMySQL psycopg2-binary pyodbc mycdp msgspec narwhals tabcompleter annotated-doc fasteners Unidecode sbvirtualdisplay sortedcontainers tenacity termcolor trio trio-websocket socksio wsproto watchfiles uvloop fire docutils scipy"
   pmiss=0
   for p in $PIP_LIST; do
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://pypi.org/pypi/$p/json" 2>/dev/null)
@@ -162,7 +162,7 @@ pkg install -y \
   libzmq libffi libcompiler-rt rust llvm lld ndk-sysroot \
   python python-pip python-numpy python-lxml python-psutil python-cryptography python-pillow \
   python-pandas nodejs npm openjdk-17 golang uv \
-  postgresql ollama code-server ffmpeg proot-distro runit \
+  postgresql ollama code-server ffmpeg proot-distro runit unixodbc \
   termux-services termux-am termux-am-socket \
   openssh openssh-sftp-server tmux micro nano neofetch net-tools \
   ripgrep jq gh curl wget unzip dos2unix git fastfetch \
@@ -209,7 +209,8 @@ pip install jupyterlab marimo soccerdata seleniumbase edge-tts openai \
   fastapi uvicorn httpx websockets orjson rich requests tqdm PyYAML \
   ruamel.yaml tomlkit croniter python-dotenv PyJWT PyOTP PySocks \
   wrapper-tls-requests tabulate behave pytest pytest-html pytest-xdist \
-  pytest-rerunfailures parameterized pdbp pynose
+  pytest-rerunfailures parameterized pdbp pynose \
+  sqlalchemy PyMySQL psycopg2-binary pyodbc
 
 if [ -z "${SETUP_SKIP_OPTD:-}" ]; then
   pip install mycdp msgspec narwhals tabcompleter annotated-doc fasteners \
