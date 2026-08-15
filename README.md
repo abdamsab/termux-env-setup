@@ -199,7 +199,7 @@ Start, then confirm the port is open:
 ```
 code-server &                       # http://127.0.0.1:8080  (password: password)
 ollama serve &                      # then: ollama pull qwen2.5:0.5b if skipped
-jupyter lab --no-browser --ip=127.0.0.1 --port=8888
+jupyter lab --no-browser   # http://127.0.0.1:8888 (cheatsheet: ~/jupyter-cheatsheet.md)
 axs &                               # AcodeX bridge (Termux <-> Acode)
 ss -tlnp                            # list what's listening
 ```

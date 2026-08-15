@@ -503,7 +503,7 @@ Manual follow-ups:
   * CREATE ~/.env (USERNAME/PASSWORD), ~/.pgpass_initial (PG_PASS), ~/.ssh keys,
     and copy ~/.termux/font.ttf from your old device if needed
   * Start services/daemons when ready:
-      jupyter lab --no-browser --ip=127.0.0.1 --port=8888
+      jupyter lab --no-browser
       code-server &
       axs
       ollama serve
