@@ -1,0 +1,10 @@
+# Secrets / user files
+.env
+.pgpass_initial
+.ssh/
+.termux/font.ttf
+
+# Builds / caches
+*.deb
+*.pyc
+__pycache__/
