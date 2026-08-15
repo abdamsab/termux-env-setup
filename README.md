@@ -199,7 +199,8 @@ Start, then confirm the port is open:
 ```
 code-server &                       # http://127.0.0.1:8080  (password: password)
 ollama serve &                      # then: ollama pull qwen2.5:0.5b if skipped
-jupyter lab --no-browser   # http://127.0.0.1:8888 (cheatsheet: ~/jupyter-cheatsheet.md)
+jupyter lab --no-browser   # http://127.0.0.1:8888 (cheatsheet: ~/termux_setup/jupyter-cheatsheet.md)
+marimo edit                # http://127.0.0.1:2718 (cheatsheet: ~/termux_setup/marimo-cheatsheet.md)
 axs &                               # AcodeX bridge (Termux <-> Acode)
 ss -tlnp                            # list what's listening
 ```
@@ -210,6 +211,7 @@ Stop them:
 pkill code-server
 pkill -x ollama
 # jupyter: Ctrl+C in its terminal (or pkill -f "jupyter lab")
+# marimo: Ctrl+C in its terminal (or pkill -f "marimo edit")
 pkill axs
 ```
 
@@ -246,7 +248,7 @@ pkill axs
 | Build toolchain | `build-essential` `clang` `binutils` `cmake` `pkg-config` `make` `m4` `patch` `rust` `llvm` `lld` `libcompiler-rt` `ndk-sysroot` |
 | Python runtime | `python` `python-pip` `python-numpy` `python-lxml` `python-psutil` `python-cryptography` `python-pillow` `python-pandas` |
 | Python messaging | `libzmq` `libffi` |
-| Languages / tools | `nodejs` `npm` `openjdk-17` `golang` `uv` |
+| Languages / tools | `nodejs` `npm` `openjdk-17` `golang` `uv` (cheatsheet: `~/termux_setup/uv-cheatsheet.md`) |
 | Apps / services | `postgresql` `ollama` `code-server` `ffmpeg` `proot-distro` `runit` `termux-services` `termux-am` `termux-am-socket` |
 | DB drivers | `unixodbc` (ODBC layer required by `pyodbc` for SQL Server) |
 | SSH | `openssh` `openssh-sftp-server` |
