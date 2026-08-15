@@ -29,7 +29,7 @@ Two ways to use this:
 ## 1. Get the script onto the device
 
 ```
-git clone https://github.com/nousresearch/hermes-agent   # (example only — replace with your repo)
+git clone https://github.com/abdamsab/termux-env-setup.git
 # or transfer via:
 #   scp termux-setup.sh user@phone:~/
 #   or paste it into `nano ~/termux-setup.sh`
