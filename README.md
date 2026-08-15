@@ -1,4 +1,4 @@
-# Termux Environment Setup Guide
+# termux-env-setup
 
 One-shot setup of a complete Termux environment on a fresh install:
 JupyterLab 4.6.3, Hermes Agent, code-server, opencode, Ollama, AcodeX, PostgreSQL,
