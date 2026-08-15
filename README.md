@@ -63,9 +63,22 @@ Optional skips (export before running):
 | `SETUP_SKIP_OPTD=1` | extra pip utility packages |
 | `SETUP_NO_TUR_PYPI=1` | build all Python modules from source (no prebuilt TUR wheels) |
 | `SETUP_SCI_STACK=1` | also install scipy (TUR apt deps + TUR wheel) |
+| `SETUP_DRY_RUN=1` | **verify-only**: check env/package names/URLs and print planned actions, install nothing |
 
 The script ends with a verification summary. If a step reports `[!]` warnings,
 see the troubleshooting section below.
+
+Before committing to a real run, you can sanity-check everything without
+touching your system:
+
+```
+SETUP_DRY_RUN=1 bash ~/termux_setup/termux-setup.sh
+```
+
+This verifies the architecture, free space, all 58 pkg package names, all 52
+pip package names, and the 4 external URLs, then prints what a real run would
+do. It installs nothing. Note it cannot simulate on-device compilation — a
+full test still needs a spare device or a proot container.
 
 ---
 

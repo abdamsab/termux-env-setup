@@ -18,6 +18,8 @@
 #   SETUP_SKIP_OPTD=1        skip optional pip utility packages
 #   SETUP_NO_TUR_PYPI=1      build all Python modules from source (no TUR prebuilt wheels)
 #   SETUP_SCI_STACK=1        also install scipy (TUR apt deps + TUR wheel)
+#   SETUP_DRY_RUN=1          verify-only: check env/packages/URLs and print the
+#                            planned actions WITHOUT installing anything
 #
 # Notes:
 #   * Network + on-device compilation needed; total 20-60 min on a phone.
@@ -32,6 +34,72 @@ say()  { printf '\033[1;36m[*] %s\033[0m\n' "$*"; }
 ok()   { printf '\033[1;32m[+] %s\033[0m\n' "$*"; }
 warn() { printf '\033[1;33m[!] %s\033[0m\n' "$*"; }
 die()  { printf '\033[1;31m[x] %s\033[0m\n' "$*"; exit 1; }
+
+# =====================================================================
+# Dry-run / verify-only mode (SETUP_DRY_RUN=1)
+# Read-only: checks the environment, package names, and URLs, then prints
+# the planned actions. Installs NOTHING.
+# =====================================================================
+if [ -n "${SETUP_DRY_RUN:-}" ]; then
+  echo "== SETUP_DRY_RUN: verify-only mode -- nothing will be installed =="
+  echo
+  echo "Environment:"
+  echo "  arch        : $(uname -m)"
+  echo "  prefix      : $PREFIX"
+  df -h "$PREFIX" 2>/dev/null | awk 'NR==2{printf "  free disk  : %s available\n", $4}'
+  free -m 2>/dev/null | awk 'NR==2{printf "  free RAM   : %s MiB\n", $7}'
+  command -v pkg >/dev/null 2>&1 && echo "  pkg         : present" || echo "  pkg         : MISSING"
+  command -v git >/dev/null 2>&1 && echo "  git         : present" || echo "  git         : MISSING"
+  command -v curl >/dev/null 2>&1 && echo "  curl        : present" || echo "  curl        : MISSING"
+  command -v python >/dev/null 2>&1 && echo "  python      : $(python -V 2>&1)" || echo "  python      : MISSING"
+  echo
+  echo "pkg package-name check (local apt cache):"
+  PKG_LIST="build-essential clang binutils cmake pkg-config make m4 patch libzmq libffi libcompiler-rt rust llvm lld ndk-sysroot python python-pip python-numpy python-lxml python-psutil python-cryptography python-pillow python-pandas nodejs npm openjdk-17 golang uv postgresql ollama code-server ffmpeg proot-distro runit termux-services termux-am termux-am-socket openssh openssh-sftp-server tmux micro nano neofetch net-tools ripgrep jq gh curl wget unzip dos2unix git fastfetch glibc openssl-glibc bash ncurses python-scipy patchelf"
+  miss=0
+  for p in $PKG_LIST; do
+    if apt-cache show "$p" >/dev/null 2>&1; then printf '  OK   %s\n' "$p"; else printf '  MISS %s\n' "$p"; miss=1; fi
+  done
+  [ "$miss" -eq 0 ] && echo "  (all pkg names resolve)"
+  echo
+  echo "External URL check (HEAD):"
+  check_url() { code=$(curl -sIL -o /dev/null -w '%{http_code}' --max-time 15 "$2"); echo "  $code  $1"; }
+  check_url "opencode .deb     " "https://github.com/Hope2333/opencode-termux/releases/download/Push260803/opencode_1.18.15_aarch64.deb"
+  check_url "AcodeX bootstrap  " "https://raw.githubusercontent.com/bajrangCoder/acode-plugin-acodex/main/installServer.sh"
+  check_url "hermes-agent repo " "https://github.com/nousresearch/hermes-agent"
+  check_url "TUR PyPI index    " "https://termux-user-repository.github.io/pypi/"
+  echo
+  echo "pip package-name check (PyPI JSON, ~1 min):"
+  PIP_LIST="jupyterlab marimo soccerdata seleniumbase edge-tts openai fastapi uvicorn httpx websockets orjson rich requests tqdm PyYAML ruamel.yaml tomlkit croniter python-dotenv PyJWT PyOTP PySocks wrapper-tls-requests tabulate behave pytest pytest-html pytest-xdist pytest-rerunfailures parameterized pdbp pynose mycdp msgspec narwhals tabcompleter annotated-doc fasteners Unidecode sbvirtualdisplay sortedcontainers tenacity termcolor trio trio-websocket socksio wsproto watchfiles uvloop fire docutils scipy"
+  pmiss=0
+  for p in $PIP_LIST; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://pypi.org/pypi/$p/json" 2>/dev/null)
+    if [ "$code" = "200" ]; then printf '  OK   %s\n' "$p"; else printf '  MISS %s\n' "$p"; pmiss=1; fi
+  done
+  [ "$pmiss" -eq 0 ] && echo "  (all pip names resolve)"
+  echo
+  echo "Planned actions (what a real run WILL do):"
+  echo "  Step 1 : add repos (termux-tur-repo termux-glibc-repo x11-repo root-repo); pkg update; pkg upgrade"
+  echo "  Step 2 : termux-setup-storage (tap Allow); write ~/.termux/colors.properties (Base16 Chalk)"
+  echo "  Step 3 : pkg install: $(echo $PKG_LIST | wc -w) system packages (toolchain, python, node, postgres, ollama, code-server, ...)"
+  echo "  Step 4 : write pip.conf (TUR PyPI extra-index-url); pip install --upgrade pip"
+  echo "  Step 5 : pip install core stack (jupyterlab, marimo, soccerdata, seleniumbase, edge-tts, openai, ...)"
+  echo "           + optional group (msgspec, narwhals, uvloop, ...) unless SETUP_SKIP_OPTD=1"
+  echo "           + scipy when SETUP_SCI_STACK=1"
+  echo "  Step 6 : clone hermes-agent @ 2446c8b; pip install -e '.[termux]' -c constraints-termux.txt"
+  echo "  Step 7 : download + dpkg -i opencode_1.18.15_aarch64.deb (~39 MB); npm i -g opencode-ai@1.18.15"
+  echo "  Step 8 : write ~/.config/code-server/config.yaml"
+  echo "  Step 9 : curl AcodeX installServer.sh | bash (installs axs); print Acode linking steps"
+  echo "  Step 10: write service run scripts; initdb postgres; sv-enable postgres; sv down sshd ssh-agent"
+  echo "  Step 11: ollama serve + ollama pull qwen2.5:0.5b"
+  echo "  Step 12: proot-distro install ubuntu"
+  echo "  Step 13: write dotfiles (.bashrc, .npmrc, pip.conf, code-server, micro, opencode, marimo)"
+  echo "  Step 14: verification summary"
+  echo
+  echo "NOTE: dry-run proves names/URLs/space only. It cannot simulate on-device"
+  echo "compilation or Android-specific quirks -- test a real run on a fresh"
+  echo "device or a proot container before trusting it."
+  exit 0
+fi
 
 # =====================================================================
 # Step 0 -- sanity checks
@@ -187,7 +255,11 @@ python -m pip cache purge || true
 hash -r 2>/dev/null || true
 
 if [ ! -d "$HOME_DIR/hermes-agent/.git" ]; then
-  git clone --depth 1 https://github.com/nousresearch/hermes-agent.git "$HOME_DIR/hermes-agent"
+  # Pin-safe fetch: a plain --depth 1 clone would only contain the current
+  # main tip, and the pinned commit may have fallen behind it. Fetch the
+  # exact commit instead.
+  git clone --filter=blob:none --no-checkout https://github.com/nousresearch/hermes-agent.git "$HOME_DIR/hermes-agent"
+  git -C "$HOME_DIR/hermes-agent" fetch --depth 1 origin 2446c8bb6755ff5e6feff4d26e425661edd4019b
   git -C "$HOME_DIR/hermes-agent" -c advice.detachedHead=false checkout 2446c8bb6755ff5e6feff4d26e425661edd4019b
 fi
 cd "$HOME_DIR/hermes-agent"
@@ -268,6 +340,17 @@ say "  5. Type  ls  or  python hello.py  in the bottom terminal panel"
 if [ -z "${SETUP_NO_SERVICES:-}" ]; then
   say "Step 10/14: services (postgres / sshd / ssh-agent)"
 
+  # SVDIR/LOGDIR + runsvdir normally come from profile.d/start-services.sh
+  # (interactive/login shells only). Set them explicitly so the script also
+  # works from non-interactive shells (ssh, cron, job-scheduler).
+  export SVDIR="$PREFIX/var/service"
+  export LOGDIR="$PREFIX/var/log"
+  if ! pgrep -f runsvdir >/dev/null 2>&1; then
+    warn "runsvdir not running -- starting service-daemon"
+    command -v service-daemon >/dev/null 2>&1 && (service-daemon start >/dev/null 2>&1 &) || true
+    sleep 2
+  fi
+
   mkdir -p "$PREFIX/var/service"
 
   cat > "$PREFIX/var/service/postgres/run" <<'EOF'
@@ -320,7 +403,7 @@ EOF
     initdb -D "$PREFIX/var/lib/postgresql" || warn "initdb failed"
   fi
 
-  sv-enable postgres sshd ssh-agent || warn "sv-enable failed"
+  sv-enable postgres || warn "sv-enable postgres failed"
   sv down sshd ssh-agent || true   # leave sshd/ssh-agent registered but stopped (start on demand)
   sv status postgres sshd ssh-agent || true
 else
