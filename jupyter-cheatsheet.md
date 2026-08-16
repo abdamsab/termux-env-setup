@@ -50,6 +50,25 @@ pip install ipykernel ipywidgets    # needed for new venvs to show up
 # register a venv: . .venv/bin/activate && pip install ipykernel && python -m ipykernel install --user
 ```
 
+## LSP intellisense in code cells
+
+```sh
+pylsp --version                     # python-lsp-server (installed with jupyterlab-lsp)
+jupyter labextension list           # should show @jupyter-lsp/jupyterlab-lsp
+```
+
+Enable per-notebook: open a notebook → right sidebar → **rocket / LSP icon** →
+toggle **Enable** (once per browser session). Then code cells get completions,
+diagnostics, hover docs and go-to-definition. Install more language servers
+later and they auto-register on restart:
+
+```sh
+pip install jedi-language-server     # or pyright, yaml-language-server, ...
+```
+
+The `Skipped non-installed server(s)` startup line is dropped by a
+`logging.Filter` in `~/.jupyter/jupyter_lab_config.py` (autodetect stays on).
+
 ## Keyboard shortcuts
 
 | Keys | Action |

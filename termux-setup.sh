@@ -69,7 +69,7 @@ if [ -n "${SETUP_DRY_RUN:-}" ]; then
   check_url "TUR PyPI index    " "https://termux-user-repository.github.io/pypi/"
   echo
   echo "pip package-name check (PyPI JSON, ~1 min):"
-  PIP_LIST="jupyterlab marimo soccerdata seleniumbase edge-tts openai fastapi uvicorn httpx websockets orjson rich requests tqdm PyYAML ruamel.yaml tomlkit croniter python-dotenv PyJWT PyOTP PySocks wrapper-tls-requests tabulate behave pytest pytest-html pytest-xdist pytest-rerunfailures parameterized pdbp pynose sqlalchemy PyMySQL psycopg2-binary pyodbc mycdp msgspec narwhals tabcompleter annotated-doc fasteners Unidecode sbvirtualdisplay sortedcontainers tenacity termcolor trio trio-websocket socksio wsproto watchfiles uvloop fire docutils scipy"
+  PIP_LIST="jupyterlab marimo soccerdata seleniumbase edge-tts openai fastapi uvicorn httpx websockets orjson rich requests tqdm PyYAML ruamel.yaml tomlkit croniter python-dotenv PyJWT PyOTP PySocks wrapper-tls-requests tabulate behave pytest pytest-html pytest-xdist pytest-rerunfailures parameterized pdbp pynose sqlalchemy PyMySQL psycopg2-binary pyodbc jupyterlab-lsp python-lsp-server mycdp msgspec narwhals tabcompleter annotated-doc fasteners Unidecode sbvirtualdisplay sortedcontainers tenacity termcolor trio trio-websocket socksio wsproto watchfiles uvloop fire docutils scipy"
   pmiss=0
   for p in $PIP_LIST; do
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://pypi.org/pypi/$p/json" 2>/dev/null)
@@ -92,7 +92,7 @@ if [ -n "${SETUP_DRY_RUN:-}" ]; then
   echo "  Step 10: write service run scripts; initdb postgres; sv-enable postgres; sv down sshd ssh-agent"
   echo "  Step 11: ollama serve + ollama pull qwen2.5:0.5b"
   echo "  Step 12: proot-distro install ubuntu"
-  echo "  Step 13: write dotfiles (.bashrc, .npmrc, pip.conf, code-server, micro, opencode, marimo)"
+  echo "  Step 13: write dotfiles (.bashrc, .npmrc, pip.conf, code-server, micro, opencode, marimo, jupyter LSP config)"
   echo "  Step 14: verification summary"
   echo
   echo "NOTE: dry-run proves names/URLs/space only. It cannot simulate on-device"
@@ -210,7 +210,8 @@ pip install jupyterlab marimo soccerdata seleniumbase edge-tts openai \
   ruamel.yaml tomlkit croniter python-dotenv PyJWT PyOTP PySocks \
   wrapper-tls-requests tabulate behave pytest pytest-html pytest-xdist \
   pytest-rerunfailures parameterized pdbp pynose \
-  sqlalchemy PyMySQL psycopg2-binary pyodbc
+  sqlalchemy PyMySQL psycopg2-binary pyodbc \
+  jupyterlab-lsp python-lsp-server
 
 if [ -z "${SETUP_SKIP_OPTD:-}" ]; then
   pip install mycdp msgspec narwhals tabcompleter annotated-doc fasteners \
@@ -471,6 +472,23 @@ EOF
 mkdir -p "$HOME_DIR/.config/marimo"
 : > "$HOME_DIR/.config/marimo/marimo.toml"
 
+mkdir -p "$HOME_DIR/.jupyter"
+cat > "$HOME_DIR/.jupyter/jupyter_lab_config.py" <<'EOF'
+import logging
+
+# jupyter-lsp auto-detects known language servers and logs an INFO line on the
+# "ServerApp" logger for every server that is not installed (e.g.
+# "Skipped non-installed server(s): basedpyright, ...").
+# python-lsp-server IS installed (via jupyterlab-lsp) for in-cell intellisense;
+# autodetect stays on so it registers automatically. This filter drops only
+# that one noisy line and leaves all other ServerApp INFO logs untouched.
+class _NoSkippedServers(logging.Filter):
+    def filter(self, record):
+        return not record.getMessage().startswith("Skipped non-installed")
+
+logging.getLogger("ServerApp").addFilter(_NoSkippedServers())
+EOF
+
 # User files are intentionally NOT written by this script. Create them yourself:
 warn "Create your own ~/.env (USERNAME/PASSWORD), ~/.pgpass_initial (PG_PASS),"
 warn "~/.ssh keys/authorized_keys, ~/.termux/font.ttf -- see ~/README.md section 3."
@@ -483,6 +501,7 @@ say "Step 14/14: verification"
   echo "--- pkg (key) ---"; pkg list-installed 2>/dev/null | rg -i "python|code-server|ollama|postgresql|nodejs|rust|clang|proot" | head -20
   echo "--- python ---";  python -V; pip -V
   echo "--- jupyter ---"; jupyter --version 2>/dev/null | head -4
+  echo "--- lsp ---";     pylsp --version 2>/dev/null || true
   echo "--- marimo ---";  marimo --version 2>/dev/null || true
   echo "--- native modules ---"; python -c "import PIL, pydantic, zmq; print('PIL', PIL.__version__, '| pydantic', pydantic.VERSION)" 2>&1 || true
   [ -n "${SETUP_SCI_STACK:-}" ] && echo "--- scipy ---"; [ -n "${SETUP_SCI_STACK:-}" ] && python -c "import scipy; print('scipy', scipy.__version__)" 2>&1 || true

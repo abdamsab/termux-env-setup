@@ -75,7 +75,7 @@ touching your system:
 SETUP_DRY_RUN=1 bash ~/termux_setup/termux-setup.sh
 ```
 
-This verifies the architecture, free space, all 60 pkg package names, all 56
+This verifies the architecture, free space, all 60 pkg package names, all 58
 pip package names, and the 4 external URLs, then prints what a real run would
 do. It installs nothing. Note it cannot simulate on-device compilation — a
 full test still needs a spare device or a proot container.
@@ -263,6 +263,7 @@ pkill axs
 |---|---|
 | Core data/AI (Step 5) | `jupyterlab` `marimo` `soccerdata` `seleniumbase` `edge-tts` `openai` `fastapi` `uvicorn` |
 | Database drivers (Step 5) | `sqlalchemy` `PyMySQL` `psycopg2-binary` `pyodbc` |
+| Notebook LSP (Step 5) | `jupyterlab-lsp` `python-lsp-server` — in-cell intellisense (completions/diagnostics/hover) in JupyterLab |
 | HTTP / util | `httpx` `websockets` `orjson` `rich` `requests` `tqdm` `PyYAML` `ruamel.yaml` `tomlkit` `croniter` `python-dotenv` `PyJWT` `PyOTP` `PySocks` `wrapper-tls-requests` `tabulate` |
 | Testing | `behave` `pytest` `pytest-html` `pytest-xdist` `pytest-rerunfailures` `parameterized` `pdbp` `pynose` |
 | Optional (`SETUP_SKIP_OPTD` off) | `mycdp` `msgspec` `narwhals` `tabcompleter` `annotated-doc` `fasteners` `Unidecode` `sbvirtualdisplay` `sortedcontainers` `tenacity` `termcolor` `trio` `trio-websocket` `socksio` `wsproto` `watchfiles` `uvloop` `fire` `docutils` |
@@ -304,6 +305,7 @@ if `PG_VERSION` is missing.
 | `~/.config/micro/settings.json` | clipboard/keymenu/mouse/simple colorscheme |
 | `~/.config/opencode/opencode.jsonc` | empty schema config |
 | `~/.config/marimo/marimo.toml` | empty |
+| `~/.jupyter/jupyter_lab_config.py` | adds a `logging.Filter` on the `ServerApp` logger that drops only the "Skipped non-installed server(s)" INFO line — keeps `autodetect` on so `pylsp` registers (see §6) |
 | `~/.env` | **not written** — create yourself (§3.2) |
 | `~/.pgpass_initial` | **not written** — create yourself (§3.2) |
 | `~/.ssh/` | **not created** — create keys yourself (§3.2) |
@@ -480,6 +482,7 @@ jupyter --version | head -4        # JupyterLab 4.6.3
 marimo --version
 python -c "import PIL, pydantic, zmq"   # native modules import cleanly
 python -c "import sqlalchemy, pymysql, psycopg2, pyodbc"  # SQLAlchemy + DB drivers
+pylsp --version                    # LSP server for in-cell intellisense
 hermes --version
 code-server --version | head -1
 opencode --version                 # in a login shell
@@ -505,6 +508,8 @@ python -c "import scipy; print(scipy.__version__)"
 | Acode can't see Termux folder | Server not running → run `axs`; or re-do the folder pick → Termux → Allow |
 | `ollama pull` failed | `ollama serve &`, wait 3s, pull again |
 | Slow/stuck compile | Normal for on-device wheels; ensure charger + enough free space |
+| `[ServerApp] Skipped non-installed server(s): …` | Expected — jupyter-lsp scans for ~19 known language servers; only `python-lsp-server` is installed (for Python in-cell intellisense). The INFO line is dropped by a `logging.Filter` in `~/.jupyter/jupyter_lab_config.py`, which keeps `autodetect` on. To add another language server later, `pip install <server>` (or npm) and it auto-registers on restart |
+| No LSP completions in a code cell | Install `jupyterlab-lsp` (script does) → restart JupyterLab → open a notebook → click the **rocket/LSP icon** in the right sidebar → toggle **Enable** |
 | `pip install onnxruntime`/`numba` tries a source build | No cp314 TUR wheel yet; TUR wheel only helps if the Python version matches. Use the proot Ubuntu container instead |
 | `pyodbc` has no drivers (`pyodbc.drivers()` empty) | Expected on Termux/Android: Microsoft ODBC / FreeTDS isn't packaged for ARM. The ODBC plumbing is installed; install a FreeTDS/ODBC driver inside the proot Ubuntu container and point unixODBC at it |
 
