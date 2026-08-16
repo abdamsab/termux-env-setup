@@ -150,7 +150,8 @@ import sqlalchemy
 from sqlalchemy import create_engine
 
 # PostgreSQL (local postgres service from this setup)
-engine = create_engine("postgresql+psycopg2://root:PASSWORD@127.0.0.1:5432/postgres")
+# user = your Termux username (superuser), password in ~/.pgpass_initial
+engine = create_engine("postgresql+psycopg2://u0_a365:PASSWORD@127.0.0.1:5432/postgres")
 
 # MySQL
 engine = create_engine("mysql+pymysql://user:pass@host:3306/db")

@@ -181,14 +181,15 @@ sv-disable postgres           # remove from boot
 
 | Service | Autostart | Start | Stop | Connect |
 |---|---|---|---|---|
-| postgres | enabled (script) | `sv start postgres` | `sv stop postgres` | `psql -U root -d postgres` |
+| postgres | enabled (script) | `sv start postgres` | `sv stop postgres` | `psql -U "$USER" -d postgres` |
 | sshd | registered, stopped (`down`) | `sv start sshd` | `sv stop sshd` | `ssh user@127.0.0.1` |
 | ssh-agent | registered, stopped (`down`) | `sv start ssh-agent` | `sv stop ssh-agent` | `export SSH_AUTH_SOCK=$PREFIX/var/run/ssh-agent.socket` |
 
-Postgres once-only: set your password and record it in `~/.pgpass_initial`:
+Postgres once-only: set your password and record it in `~/.pgpass_initial`
+(no `root`/`postgres` role exists — the superuser is your Termux username):
 
 ```
-psql -U root -d postgres -c "ALTER USER root WITH PASSWORD '<your-pass>';"
+psql -d postgres -c "ALTER USER $USER WITH PASSWORD '<your-pass>';"
 echo "PG_PASS=<your-pass>" > ~/.pgpass_initial
 ```
 
@@ -199,6 +200,7 @@ Start, then confirm the port is open:
 ```
 code-server &                       # http://127.0.0.1:8080  (password: password)
 ollama serve &                      # then: ollama pull qwen2.5:0.5b if skipped
+postgres (sv up postgres)   # 127.0.0.1:5432 (cheatsheet: ~/termux_setup/postgresql-cheatsheet.md)
 jupyter lab --no-browser   # http://127.0.0.1:8888 (cheatsheet: ~/termux_setup/jupyter-cheatsheet.md)
 marimo edit                # http://127.0.0.1:2718 (cheatsheet: ~/termux_setup/marimo-cheatsheet.md)
 axs &                               # AcodeX bridge (Termux <-> Acode)

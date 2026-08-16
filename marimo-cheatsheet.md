@@ -121,7 +121,8 @@ mo.ui.table(df).value           # row selections -> filtered dataframe
 import sqlalchemy as sa
 from sqlalchemy import create_engine
 
-engine = create_engine("postgresql+psycopg2://root:PASSWORD@127.0.0.1:5432/postgres")
+engine = create_engine("postgresql+psycopg2://u0_a365:PASSWORD@127.0.0.1:5432/postgres")
+# user = your Termux username (superuser, see ~/.pgpass_initial for the password)
 # engine = create_engine("mysql+pymysql://user:pass@host:3306/db")
 # engine = create_engine("mssql+pyodbc://user:pass@host/db?driver=ODBC+Driver+18+for+SQL+Server")
 
