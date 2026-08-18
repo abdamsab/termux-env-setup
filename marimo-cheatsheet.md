@@ -105,7 +105,9 @@ uv add pymysql
 uv add pyodbc
 
 # DuckDB (in-process analytical SQL, no server needed)
-uv add duckdb
+# WARNING: no pre-built Termux wheel; source build fails.
+# Use marimo's built-in DuckDB SQL cells instead, or skip.
+# uv add duckdb  # BROKEN on Termux
 
 # all at once
 uv add sqlalchemy psycopg2-binary pymysql pyodbc duckdb

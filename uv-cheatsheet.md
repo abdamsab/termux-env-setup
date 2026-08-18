@@ -142,6 +142,19 @@ name = "tur-pypi"
 python-downloads = "never"
 ```
 
+```sh
+# ~/.bashrc (this setup adds both)
+export UV_INDEX_STRATEGY=unsafe-best-match   # check all indexes
+export UV_LINK_MODE=copy                     # avoid hardlink warning
+```
+
+> **`UV_INDEX_STRATEGY=unsafe-best-match`:** By default, uv only uses
+> the **first** index that has a package. If TUR has `cmake==3.28.4` but
+> a package needs `cmake>=3.29.0`, uv fails instead of checking PyPI.
+> With `unsafe-best-match`, uv checks all indexes — TUR first (pre-built
+> wheels), then PyPI (newer versions as fallback). This is safe because
+> both are trusted sources.
+
 **Per-project** (in `pyproject.toml`):
 
 ```toml
@@ -167,6 +180,28 @@ uv add --index https://termux-user-repository.github.io/pypi/ pandas
 > The global `~/.config/uv/uv.toml` is the recommended approach — set
 > once, works for all projects. Without this, `uv add pandas` tries to
 > build from source and fails (no meson/cython on Termux).
+
+### Termux package layers
+
+There are **two ways** packages arrive on Termux — know which layer you're in:
+
+| Layer | Install with | Scope | Example |
+|---|---|---|---|
+| **System** (TUR) | `pkg install python-X` | Global, all venvs see it | `pkg install python-numpy` |
+| **Project** (uv) | `uv add X` | Per-project `.venv` only | `uv add pandas` |
+
+- `pkg install python-pandas` → installs pandas system-wide; `uv pip install`
+  finds it via TUR PyPI index; `uv add` re-downloads into `.venv`.
+- Many packages (numpy, pandas, scipy, pydantic) are available as TUR
+  system packages — `pkg install` is faster and avoids venv duplication.
+
+### Packages that DON'T work on Termux
+
+Some packages have no pre-built Termux wheel and fail to compile from source:
+
+- **duckdb** — manylinux wheels need glibc loader setup; source build
+  fails (cmake/cython version mismatch). Use `marimo`'s built-in
+  DuckDB cells as a workaround, or skip it.
 
 ## Project workflow
 
