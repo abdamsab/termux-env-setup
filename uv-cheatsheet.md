@@ -44,8 +44,53 @@ uv pip uninstall requests
 uv pip install -e ./hermes-agent       # editable local project
 ```
 
-uv honors `~/.config/pip/pip.conf` (including the TUR PyPI `extra-index-url`
-this setup configures), so prebuilt Termux wheels work the same as with pip.
+uv honors `~/.config/pip/pip.conf` for `uv pip` commands only.
+For project mode (`uv add` / `uv sync` / `uv run`), you must declare
+indexes explicitly — see **TUR PyPI (Termux)** below.
+
+## TUR PyPI (Termux — pre-built wheels)
+
+Termux packages (numpy, pandas, scipy, pydantic-core, etc.) need
+pre-built wheels from the [TUR PyPI](https://termux-user-repository.github.io/pypi/).
+**`uv add` / `uv sync` / `uv run` do NOT read `pip.conf`** — you must
+declare the index yourself.
+
+**Global config** (all projects, already written by this setup):
+
+```toml
+# ~/.config/uv/uv.toml
+[[index]]
+url = "https://termux-user-repository.github.io/pypi/"
+name = "tur-pypi"
+
+python-downloads = "never"
+```
+
+**Per-project** (in `pyproject.toml`):
+
+```toml
+[[tool.uv.index]]
+url = "https://termux-user-repository.github.io/pypi/"
+name = "tur-pypi"
+```
+
+**Per-project** (in `uv.toml` alongside `pyproject.toml`):
+
+```toml
+[[index]]
+url = "https://termux-user-repository.github.io/pypi/"
+name = "tur-pypi"
+```
+
+**One-off** (inline flag):
+
+```sh
+uv add --index https://termux-user-repository.github.io/pypi/ pandas
+```
+
+> The global `~/.config/uv/uv.toml` is the recommended approach — set
+> once, works for all projects. Without this, `uv add pandas` tries to
+> build from source and fails (no meson/cython on Termux).
 
 ## Project workflow
 
@@ -127,14 +172,10 @@ uv format / uv check           # ruff-style formatting / lint check (experimenta
 
 ## Termux notes
 
-- Uses system Python 3.14; set `UV_PYTHON_DOWNLOADS=never` (or pass
-  `--no-managed-python`) so uv never tries to fetch a managed CPython.
-- **TUR PyPI for pre-built wheels:** `uv pip` reads `pip.conf` (including
-  `extra-index-url`), but `uv add` / `uv sync` / `uv run` (project mode)
-  do **not**. You must declare the TUR index in one of:
-  - Global: `~/.config/uv/uv.toml` (this setup writes it automatically)
-  - Per-project: `[[tool.uv.index]]` in `pyproject.toml`
-- Cache lives on internal storage (~/.cache/uv); `uv cache clean` to reclaim
-  space.
-- `uv venv` environments are just `.venv/` — nuke it with `rm -rf .venv` if
-  a sync ever wedges, then `uv sync` again.
+- Uses system Python 3.14; `UV_PYTHON_DOWNLOADS=never` is set globally
+  (`~/.config/uv/uv.toml`) so uv never tries to fetch a managed CPython.
+- TUR PyPI: see **TUR PyPI (Termux)** section above for index setup.
+- Cache lives on internal storage (`~/.cache/uv`); `uv cache clean` to
+  reclaim space.
+- `uv venv` environments are just `.venv/` — nuke with `rm -rf .venv`
+  if a sync ever wedges, then `uv sync` again.
