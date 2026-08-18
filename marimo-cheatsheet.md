@@ -74,6 +74,77 @@ pip install playwright
 playwright install chromium        # one-time; needed only for html/pdf export
 ```
 
+## uv integration (recommended)
+
+marimo is designed to work with [uv](https://docs.astral.sh/uv/) — the
+fast Python package manager. Notebooks are `.py` files, so they slot
+directly into uv's project workflow.
+
+### Quick start: uv project + marimo
+
+```sh
+uv init myproject && cd myproject
+uv add marimo pandas matplotlib   # deps tracked in pyproject.toml + uv.lock
+uv run marimo edit                 # launch editor in the project's venv
+uv run marimo run app.py           # serve a finished app
+```
+
+### PEP 723 inline metadata (single-file sandbox)
+
+marimo notebooks use PEP 723 `# /// script` blocks at the top of each
+`.py` file to declare dependencies. marimo manages this block for you,
+but here's what it looks like:
+
+```python
+# /// script
+# requires-python = ">=3.14"
+# dependencies = [
+#     "marimo",
+#     "pandas",
+#     "matplotlib",
+# ]
+# ///
+
+import marimo as mo
+import pandas as pd
+
+@app.cell
+def _():
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    return (df,)
+```
+
+### Sandbox mode (`--sandbox`)
+
+`--sandbox` tells marimo to run the notebook in an isolated venv created
+from the `# /// script` block, using uv under the hood. Dependencies
+install automatically — no manual `pip install` needed.
+
+```sh
+marimo edit notebook.py --sandbox  # single-file: uv run wraps the process
+marimo run notebook.py --sandbox   # same for read-only apps
+marimo edit --sandbox              # directory: per-notebook venvs (multi-file)
+```
+
+When you add/remove packages via the marimo UI (Cell > Add/Remove
+package), marimo updates the `# /// script` block AND installs them
+with `uv add` or `uv pip install` automatically.
+
+### Project vs. standalone
+
+| Mode | When | How deps are installed |
+|---|---|---|
+| **In a uv project** (pyproject.toml exists) | `uv run marimo edit` | `uv add <pkg>` — shared project env |
+| **Standalone file** | `marimo edit --sandbox` | `uv pip install` into a per-file venv |
+| **No sandbox** | `marimo edit notebook.py` | Uses the active/system Python directly |
+
+### Export from a uv project
+
+```sh
+uv export --format requirements.txt -o requirements.txt  # lockfile -> requirements
+uv run marimo export html notebook.py                     # export needs the project env
+```
+
 ## Interactive cell basics
 
 - Run a cell: `Shift+Enter` (reactive — dependents re-run automatically).
