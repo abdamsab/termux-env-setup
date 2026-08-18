@@ -89,6 +89,71 @@ uv run marimo edit                 # launch editor in the project's venv
 uv run marimo run app.py           # serve a finished app
 ```
 
+### Database drivers
+
+```sh
+# SQLAlchemy (ORM / raw SQL engine)
+uv add sqlalchemy
+
+# PostgreSQL
+uv add psycopg2-binary            # or: uv add psycopg (async, no-binary)
+
+# MySQL
+uv add pymysql
+
+# SQL Server (needs unixODBC system package: pkg install unixodbc)
+uv add pyodbc
+
+# DuckDB (in-process analytical SQL, no server needed)
+uv add duckdb
+
+# all at once
+uv add sqlalchemy psycopg2-binary pymysql pyodbc duckdb
+```
+
+> On Termux, psycopg2-binary / pymysql / pyodbc wheels are available from
+> the TUR PyPI (`extra-index-url` in pip.conf, honored by uv).
+> pyodbc also requires `pkg install unixodbc` for the system library.
+
+### .env and secrets
+
+marimo does **not** auto-load `.env` files. Two ways to get secrets in:
+
+**Option A: uv loads it for you (recommended)**
+
+```sh
+uv run --env-file .env marimo edit --headless --port 2718
+```
+
+`uv run --env-file .env` injects every `KEY=VALUE` into the process
+environment before marimo starts. The notebook then reads them normally:
+
+```python
+import os
+DB_URL = os.environ["DATABASE_URL"]  # set in .env
+```
+
+**Option B: python-dotenv inside a cell**
+
+```python
+from dotenv import load_dotenv
+load_dotenv()                       # reads .env in CWD
+
+import os
+DB_URL = os.environ["DATABASE_URL"]
+```
+
+**.env example for this setup:**
+
+```ini
+DATABASE_URL=postgresql+psycopg2://u0_a365:YOURPASSWORD@127.0.0.1:5432/postgres
+MYSQL_URL=mysql+pymysql://user:pass@127.0.0.1:3306/db
+MSSQL_URL=mssql+pyodbc://user:pass@host/db?driver=ODBC+Driver+18+for+SQL+Server
+DUCKDB_PATH=./data.duckdb
+```
+
+> Never commit `.env` to git — add it to `.gitignore`.
+
 ### PEP 723 inline metadata (single-file sandbox)
 
 marimo notebooks use PEP 723 `# /// script` blocks at the top of each
@@ -102,6 +167,8 @@ but here's what it looks like:
 #     "marimo",
 #     "pandas",
 #     "matplotlib",
+#     "sqlalchemy",
+#     "psycopg2-binary",
 # ]
 # ///
 
@@ -124,6 +191,9 @@ install automatically — no manual `pip install` needed.
 marimo edit notebook.py --sandbox  # single-file: uv run wraps the process
 marimo run notebook.py --sandbox   # same for read-only apps
 marimo edit --sandbox              # directory: per-notebook venvs (multi-file)
+
+# with .env inside sandbox:
+marimo edit notebook.py --sandbox --env-file .env
 ```
 
 When you add/remove packages via the marimo UI (Cell > Add/Remove
