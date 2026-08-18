@@ -117,30 +117,25 @@ uv add sqlalchemy psycopg2-binary pymysql pyodbc duckdb
 
 ### .env and secrets
 
-marimo does **not** auto-load `.env` files. Two ways to get secrets in:
+marimo **auto-loads `.env`** files — the `.env` next to your
+`pyproject.toml` is loaded by default. No `python-dotenv` needed.
 
-**Option A: uv loads it for you (recommended)**
+```python
+import os
+DB_URL = os.environ["DATABASE_URL"]  # already available from .env
+```
+
+Configure multiple `.env` files in `pyproject.toml`:
+
+```toml
+[tool.marimo.runtime]
+dotenv = [".env", ".env.testing"]
+```
+
+**Fallback: uv or python-dotenv (for standalone files without pyproject.toml):**
 
 ```sh
 uv run --env-file .env marimo edit --headless --port 2718
-```
-
-`uv run --env-file .env` injects every `KEY=VALUE` into the process
-environment before marimo starts. The notebook then reads them normally:
-
-```python
-import os
-DB_URL = os.environ["DATABASE_URL"]  # set in .env
-```
-
-**Option B: python-dotenv inside a cell**
-
-```python
-from dotenv import load_dotenv
-load_dotenv()                       # reads .env in CWD
-
-import os
-DB_URL = os.environ["DATABASE_URL"]
 ```
 
 **.env example for this setup:**
@@ -153,6 +148,7 @@ DUCKDB_PATH=./data.duckdb
 ```
 
 > Never commit `.env` to git — add it to `.gitignore`.
+> marimo surfaces env vars in the UI when creating databases.
 
 ### PEP 723 inline metadata (single-file sandbox)
 
@@ -316,7 +312,54 @@ if you want in-notebook SQL.
 - Per-project: `.marimo.toml` next to your notebooks.
 - CLI/server flags beat file config (e.g. `--port`, `--headless`).
 
-## Keyboard / UI
+## Runtime configuration (pyproject.toml)
+
+Configure marimo's runtime in `pyproject.toml`:
+
+```toml
+[tool.marimo.runtime]
+
+# Auto-load .env files (the one next to pyproject.toml is loaded by default)
+dotenv = [".env", ".env.testing"]
+
+# Lazy execution: mark affected cells stale instead of auto-running
+# (set in UI via Settings > On cell change > lazy)
+# Useful for expensive notebooks
+
+# Auto-cache every cell (avoid re-running expensive computations)
+cache_cells = true
+
+# Add directories to sys.path (before notebook code runs)
+pythonpath = ["project/src"]
+
+# Module autoreload: re-run cells when imported .py files change
+# "autorun" = auto re-run affected cells
+# "lazy"     = mark affected cells stale
+on_module_change = "autorun"   # or "lazy"
+```
+
+### Python path
+
+By default, marimo does not modify `sys.path` — keeping `marimo edit nb.py`
+consistent with `python nb.py`. Use `pythonpath` in `pyproject.toml` when
+you need modules from a subdirectory:
+
+```toml
+[tool.marimo.runtime]
+pythonpath = ["project/src"]
+```
+
+Prefer the uv approach for library projects instead:
+
+```sh
+uv init --lib my_package && cd my_package
+uv add --dev marimo
+uv run marimo edit notebook.py     # my_package is importable
+```
+
+For multiple packages, use [uv workspaces](https://docs.astral.sh/uv/concepts/workspaces/).
+
+### Keyboard / UI
 
 | Keys | Action |
 |---|---|
