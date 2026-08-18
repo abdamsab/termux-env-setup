@@ -10,8 +10,7 @@ SSH tunnel (`ssh -L 8888:127.0.0.1:8888 user@phone`).
 jupyter lab --no-browser            # start on http://127.0.0.1:8888 (headless)
 jupyter lab --no-browser --port 9999    # different port
 jupyter lab --no-browser &          # background it (see README §3.4)
-jupyter notebook list               # running servers + tokens (legacy)
-jupyter server list                 # running servers + tokens (current)
+jupyter server list                 # running servers + tokens
 # stop: Ctrl+C in its terminal, or:
 pkill -f "jupyter lab"
 ```

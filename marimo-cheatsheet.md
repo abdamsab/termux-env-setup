@@ -13,9 +13,44 @@ marimo edit                        # start the server, create/edit notebooks
 marimo edit notebook.py            # create or edit a specific notebook
 marimo edit notebook.py --headless --port 2718   # headless (no browser), custom port
 marimo run notebook.py             # serve a notebook as a read-only app
-marimo serve                       # serve multiple notebooks/apps
+marimo run notebook.py app2.py folder/  # serve multiple notebooks/apps
 # stop: Ctrl+C in its terminal, or:
 pkill -f "marimo edit"
+pkill -f "marimo run"
+```
+
+## Central project manager (like JupyterLab)
+
+Running `marimo edit` **without a filename** starts a server with a file
+browser — list, create, and edit notebooks from a single page, just like
+JupyterLab. This is the recommended way to manage a project.
+
+```sh
+# Start from your project root — browse all notebooks in the browser
+cd ~/projects/myproject
+marimo edit                         # http://127.0.0.1:2718 shows file tree
+
+# Headless (phone / remote access)
+marimo edit --headless --port 2718 --host 0.0.0.0
+```
+
+For **serving finished apps** (read-only, no editor), `marimo run` accepts
+multiple paths — pass files and/or directories:
+
+```sh
+marimo run analysis.py dashboard/  --port 8080 --headless
+```
+
+To keep a single always-on server (like JupyterLab in a tmux/screen
+session or as a Termux service):
+
+```sh
+# tmux/screen:
+tmux new -s marimo
+marimo edit --headless --port 2718
+# detach with Ctrl+B, D
+
+# or Termux runit service (see termux-ops skill)
 ```
 
 ## File / CLI

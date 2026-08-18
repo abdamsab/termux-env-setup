@@ -116,9 +116,14 @@ uv cache dir                   # where the cache lives (~/.cache/uv)
 uv cache clean                 # clear everything
 uv cache clean <pkg>           # clear one package
 uv self update                 # upgrade uv itself
-uv audit                       # check for known-vulnerability advisories
-uv format / uv check           # ruff-style formatting / lint check
+uv audit                       # check for known-vulnerability advisories (experimental)
+uv format / uv check           # ruff-style formatting / lint check (experimental)
 ```
+
+> **Termux note:** `uv audit`, `uv format`, and `uv check` are experimental
+> (need `--preview-features`) and `uv format`/`uv check` require ruff and ty
+> binaries that aren't available for `aarch64-linux-android`. Use
+> `uvx ruff check .` / `uvx ruff format .` instead (install ruff first).
 
 ## Termux notes
 
