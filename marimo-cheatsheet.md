@@ -111,9 +111,9 @@ uv add duckdb
 uv add sqlalchemy psycopg2-binary pymysql pyodbc duckdb
 ```
 
-> On Termux, psycopg2-binary / pymysql / pyodbc wheels are available from
-> the TUR PyPI (`extra-index-url` in pip.conf, honored by uv).
-> pyodbc also requires `pkg install unixodbc` for the system library.
+> On Termux, pre-built wheels come from TUR PyPI. uv does **not** read
+> `pip.conf` — you must declare the index. This is configured globally
+> in `~/.config/uv/uv.toml` (this setup writes it automatically).
 
 ### .env and secrets
 

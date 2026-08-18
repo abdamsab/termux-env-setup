@@ -129,8 +129,11 @@ uv format / uv check           # ruff-style formatting / lint check (experimenta
 
 - Uses system Python 3.14; set `UV_PYTHON_DOWNLOADS=never` (or pass
   `--no-managed-python`) so uv never tries to fetch a managed CPython.
-- The TUR PyPI `extra-index-url` from pip.conf applies to `uv pip` commands,
-  so pydantic-core / pillow / scipy wheels are reused.
+- **TUR PyPI for pre-built wheels:** `uv pip` reads `pip.conf` (including
+  `extra-index-url`), but `uv add` / `uv sync` / `uv run` (project mode)
+  do **not**. You must declare the TUR index in one of:
+  - Global: `~/.config/uv/uv.toml` (this setup writes it automatically)
+  - Per-project: `[[tool.uv.index]]` in `pyproject.toml`
 - Cache lives on internal storage (~/.cache/uv); `uv cache clean` to reclaim
   space.
 - `uv venv` environments are just `.venv/` — nuke it with `rm -rf .venv` if
