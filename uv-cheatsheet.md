@@ -23,6 +23,82 @@ uv run main.py                 # run with the project env
 uv sync                        # rebuild env from uv.lock
 ```
 
+## Pitfalls (read this first!)
+
+### `uv add` vs `uv pip install` — never mix in the same project
+
+| | `uv add` | `uv pip install` |
+|---|---|---|
+| Needs `pyproject.toml`? | Yes | No |
+| Updates `pyproject.toml`? | Yes | No |
+| Updates `uv.lock`? | Yes | No |
+| Visible to `uv sync`? | Yes | No |
+| Visible to collaborators? | Yes | No |
+
+**What goes wrong:**
+
+```sh
+uv add pandas           # writes to pyproject.toml + uv.lock, installs
+uv pip install scipy    # installs into venv only, invisible to project
+uv sync                 # recreates from uv.lock — scipy disappears!
+```
+
+**The rule:**
+- **Project** (has `pyproject.toml`)? → always `uv add` / `uv remove`
+- **Standalone venv** (no project)? → always `uv pip install` / `uv pip uninstall`
+- **Never mix both** in the same environment
+
+### Migrating from pip to uv project
+
+If you already have packages installed with `pip` and want to move to a
+uv project, don't just run `uv add` alongside them:
+
+```sh
+# WRONG: pip install + uv add = hidden deps, sync breaks
+pip install pandas
+uv add sqlalchemy           # pyproject.toml has sqlalchemy, NOT pandas
+uv sync                     # pandas vanishes
+
+# RIGHT: declare everything in pyproject.toml
+uv init myproject && cd myproject
+uv add pandas sqlalchemy    # all deps tracked properly
+uv sync                     # reproducible — installs exactly what's listed
+```
+
+### `uv sync` is destructive
+
+`uv sync` recreates the venv from `uv.lock`. Anything installed outside
+`uv add` (pip, `uv pip install`, manual `pip install -e .`) is removed:
+
+```sh
+uv sync                     # installs exactly what uv.lock says — nothing else
+uv pip install debug-tool   # added to venv, NOT in uv.lock
+uv sync                     # debug-tool is gone
+```
+
+### `uv run` only sees project deps
+
+`uv run` activates the project environment. Packages installed outside
+the project (system-wide `pip install`) are not visible unless they're
+in `uv.lock` or you pass `--with`:
+
+```sh
+uv run python -c "import scipy"     # ModuleNotFoundError (not in project)
+uv run --with scipy python -c "import scipy"  # works (ephemeral)
+```
+
+### Quick reference — which command for what?
+
+| Situation | Command |
+|---|---|
+| Add a dep to a project | `uv add pandas` |
+| Remove a dep from a project | `uv remove pandas` |
+| Install into a standalone venv | `uv pip install pandas` |
+| Install from requirements.txt (no project) | `uv pip install -r requirements.txt` |
+| Rebuild venv from lockfile | `uv sync` |
+| Run script in project env | `uv run script.py` |
+| Run with ephemeral extra dep | `uv run --with scipy script.py` |
+
 ## Environment / venv
 
 ```sh
