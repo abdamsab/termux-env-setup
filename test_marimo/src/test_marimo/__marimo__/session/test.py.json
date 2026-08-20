@@ -1,0 +1,55 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.24.0",
+    "script_metadata_hash": null
+  },
+  "cells": [
+    {
+      "id": "Hbol",
+      "code_hash": "90df149116e03c11223ee9e37962d902",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "sxOq",
+      "code_hash": "7b2ba3832724c6b3ae01353a5ad0d29b",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "nvUq",
+      "code_hash": "634fe984f5e9cb204f749edb5363d0fc",
+      "outputs": [
+        {
+          "type": "error",
+          "ename": "exception",
+          "evalue": "The following packages are required to execute sql: duckdb, sqlglot",
+          "traceback": null
+        }
+      ],
+      "console": [
+        {
+          "type": "stream",
+          "name": "stderr",
+          "text": "<span class=\"codehilite\"><div class=\"highlight\"><pre><span></span><span class=\"gt\">Traceback (most recent call last):</span>\n  File <span class=\"nb\">\"/data/data/com.termux/files/usr/tmp/marimo_15387/__marimo__cell_nvUq_.py\"</span>, line <span class=\"m\">1</span>, in <span class=\"n\">&lt;module&gt;</span>\n<span class=\"w\">    </span><span class=\"n\">_df</span> <span class=\"o\">=</span> <span class=\"n\">mo</span><span class=\"o\">.</span><span class=\"n\">sql</span><span class=\"p\">(</span>\n<span class=\"w\">    </span>    <span class=\"sa\">f</span><span class=\"s2\">\"\"\"</span>\n<span class=\"w\">    </span>    <span class=\"n\">SELECT</span> <span class=\"o\">*</span> <span class=\"n\">FROM</span> <span class=\"n\">customer</span><span class=\"p\">;</span>\n<span class=\"w\">    </span>    <span class=\"s2\">\"\"\"</span>\n<span class=\"w\">    </span><span class=\"p\">)</span>\n  File <span class=\"nb\">\"/data/data/com.termux/files/home/termux_setup/test_marimo/.venv/lib/python3.14/site-packages/marimo/_sql/sql.py\"</span>, line <span class=\"m\">113</span>, in <span class=\"n\">sql</span>\n<span class=\"w\">    </span><span class=\"n\">DependencyManager</span><span class=\"o\">.</span><span class=\"n\">require_many</span><span class=\"p\">(</span>\n<span class=\"w\">    </span><span class=\"pm\">~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^</span>\n<span class=\"w\">    </span>    <span class=\"s2\">\"to execute sql\"</span><span class=\"p\">,</span>\n<span class=\"w\">        </span><span class=\"pm\">^^^^^^^^^^^^^^^^^</span>\n<span class=\"w\">    </span>    <span class=\"o\">*</span><span class=\"n\">_default_duckdb_deps</span><span class=\"p\">(),</span>\n<span class=\"w\">        </span><span class=\"pm\">^^^^^^^^^^^^^^^^^^^^^^^^</span>\n<span class=\"w\">    </span>    <span class=\"n\">source</span><span class=\"o\">=</span><span class=\"s2\">\"kernel\"</span><span class=\"p\">,</span>\n<span class=\"w\">        </span><span class=\"pm\">^^^^^^^^^^^^^^^^</span>\n<span class=\"w\">    </span><span class=\"p\">)</span>\n<span class=\"w\">    </span><span class=\"pm\">^</span>\n  File <span class=\"nb\">\"/data/data/com.termux/files/home/termux_setup/test_marimo/.venv/lib/python3.14/site-packages/marimo/_dependencies/dependencies.py\"</span>, line <span class=\"m\">332</span>, in <span class=\"n\">require_many</span>\n<span class=\"w\">    </span><span class=\"k\">raise</span> <span class=\"n\">ManyModulesNotFoundError</span><span class=\"p\">(</span>\n<span class=\"w\">    </span><span class=\"o\">...&lt;</span><span class=\"mi\">3</span> <span class=\"n\">lines</span><span class=\"o\">&gt;...</span>\n<span class=\"w\">    </span><span class=\"p\">)</span>\n<span class=\"gr\">marimo._dependencies.errors.ManyModulesNotFoundError</span>: <span class=\"n\">The following packages are required to execute sql: duckdb, sqlglot</span>\n</pre></div>\n</span>",
+          "mimetype": "application/vnd.marimo+traceback"
+        }
+      ]
+    }
+  ]
+}
