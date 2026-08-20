@@ -355,15 +355,32 @@ if [ -z "${SETUP_NO_SERVICES:-}" ]; then
     PG_VER=$(dpkg -l postgresql 2>/dev/null | grep ^ii | awk '{print $3}' | sed 's/^\([0-9]*\).*/\1/')
     PG_VER="${PG_VER:-16}"
     PG_CLUST="main"
+    PG_DATA="/var/lib/postgresql/$PG_VER/$PG_CLUST"
     say "creating PostgreSQL cluster (ver=$PG_VER)"
 
-    # Ensure the data directory parent exists
-    mkdir -p "/var/lib/postgresql/$PG_VER/$PG_CLUST" 2>/dev/null || true
+    mkdir -p "$PG_DATA"
+    chown postgres:postgres "$PG_DATA"
 
-    pg_createcluster "$PG_VER" "$PG_CLUST" -- --auth-local=trust --auth-host=md5 \
-      || pg_ctlcluster "$PG_VER" "$PG_CLUST" start \
-      || warn "pg_createcluster failed -- try: pg_ctlcluster $PG_VER $PG_CLUST start"
-    # Re-read cluster info after creation
+    # pg_createcluster uses su - postgres which breaks in proot (UID mapping).
+    # Run initdb directly as root instead.
+    if ! su - postgres -c "initdb -D '$PG_DATA' --auth-local=trust --auth-host=md5" 2>/dev/null; then
+      warn "su-based initdb failed (proot UID issue) -- running initdb as root"
+      initdb -D "$PG_DATA" --auth-local=trust --auth-host=md5
+    fi
+    # Write minimal postgresql.conf for proot
+    cat >> "$PG_DATA/postgresql.conf" <<PGCONF
+
+# proot overrides
+listen_addresses = 'localhost'
+port = 5432
+unix_socket_directories = '/var/run/postgresql'
+PGCONF
+    # Create cluster entry for pg_ctlcluster
+    mkdir -p /etc/postgresql/$PG_VER/main
+    ln -sf "$PG_DATA" /var/lib/postgresql/$PG_VER/$PG_CLUST
+    chown -R postgres:postgres "$PG_DATA"
+
+    # Re-read cluster info
     PG_LINE=$(pg_lsclusters -h 2>/dev/null | head -1)
     if [ -n "$PG_LINE" ]; then
       PG_VER=$(echo "$PG_LINE" | awk '{print $1}')
@@ -374,9 +391,14 @@ if [ -z "${SETUP_NO_SERVICES:-}" ]; then
   # Start PostgreSQL
   if ! pg_isready -q 2>/dev/null; then
     say "starting PostgreSQL $PG_VER"
+    PG_DATA="/var/lib/postgresql/$PG_VER/$PG_CLUST"
+    # Try pg_ctlcluster first, then su - postgres, then direct pg_ctl as root.
+    # su may break in proot (UID mapping), so root fallback is essential.
     pg_ctlcluster "$PG_VER" "$PG_CLUST" start 2>/dev/null \
-      || su - postgres -c "pg_ctl -D /var/lib/postgresql/$PG_VER/$PG_CLUST -l /var/log/postgresql/postgresql-$PG_VER-$PG_CLUST.log start" \
+      || su - postgres -c "pg_ctl -D '$PG_DATA' -l /var/log/postgresql/postgresql-$PG_VER-$PG_CLUST.log start" 2>/dev/null \
+      || pg_ctl -D "$PG_DATA" -l /var/log/postgresql/postgresql-$PG_VER-$PG_CLUST.log start 2>/dev/null \
       || warn "postgres start failed"
+    sleep 1
   fi
   pg_isready 2>/dev/null && ok "PostgreSQL is running" || warn "PostgreSQL may not be running -- check: pg_isready"
 
@@ -423,19 +445,36 @@ usage() {
 
 svc_start_postgres() {
   PG_LINE=$(pg_lsclusters -h 2>/dev/null | head -1)
-  [ -z "$PG_LINE" ] && { echo "No PostgreSQL cluster found"; return 1; }
-  PG_VER=$(echo "$PG_LINE" | awk '{print $1}')
-  PG_CLUST=$(echo "$PG_LINE" | awk '{print $2}')
-  pg_ctlcluster "$PG_VER" "$PG_CLUST" start 2>/dev/null
+  if [ -n "$PG_LINE" ]; then
+    PG_VER=$(echo "$PG_LINE" | awk '{print $1}')
+    PG_CLUST=$(echo "$PG_LINE" | awk '{print $2}')
+    PG_DATA="/var/lib/postgresql/$PG_VER/$PG_CLUST"
+    pg_ctlcluster "$PG_VER" "$PG_CLUST" start 2>/dev/null \
+      || pg_ctl -D "$PG_DATA" -l /var/log/postgresql/postgresql-$PG_VER-$PG_CLUST.log start 2>/dev/null \
+      || { echo "PostgreSQL failed to start"; return 1; }
+  else
+    # No cluster registered -- try common locations
+    for d in /var/lib/postgresql/*/main; do
+      [ -d "$d" ] && { pg_ctl -D "$d" -l /var/log/postgresql/pg.log start 2>/dev/null && break; }
+    done
+  fi
   pg_isready -q 2>/dev/null && echo "PostgreSQL started" || echo "PostgreSQL failed to start"
 }
 
 svc_stop_postgres() {
   PG_LINE=$(pg_lsclusters -h 2>/dev/null | head -1)
-  [ -z "$PG_LINE" ] && { echo "No PostgreSQL cluster found"; return 1; }
-  PG_VER=$(echo "$PG_LINE" | awk '{print $1}')
-  PG_CLUST=$(echo "$PG_LINE" | awk '{print $2}')
-  pg_ctlcluster "$PG_VER" "$PG_CLUST" stop 2>/dev/null
+  if [ -n "$PG_LINE" ]; then
+    PG_VER=$(echo "$PG_LINE" | awk '{print $1}')
+    PG_CLUST=$(echo "$PG_LINE" | awk '{print $2}')
+    PG_DATA="/var/lib/postgresql/$PG_VER/$PG_CLUST"
+    pg_ctlcluster "$PG_VER" "$PG_CLUST" stop 2>/dev/null \
+      || pg_ctl -D "$PG_DATA" stop 2>/dev/null \
+      || true
+  else
+    for d in /var/lib/postgresql/*/main; do
+      [ -d "$d" ] && pg_ctl -D "$d" stop 2>/dev/null && break
+    done
+  fi
   echo "PostgreSQL stopped"
 }
 
