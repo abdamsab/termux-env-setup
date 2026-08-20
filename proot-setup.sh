@@ -127,14 +127,9 @@ command -v apt >/dev/null 2>&1 || die "'apt' not found -- is this really Ubuntu?
 [ -f /etc/os-release ] || die "/etc/os-release not found"
 grep -qi ubuntu /etc/os-release || die "Not Ubuntu: $(grep PRETTY_NAME /etc/os-release)"
 
-# Detect nested proot (same check as proot-distro itself)
-TRACER_PID=$(grep TracerPid "/proc/$$/status" 2>/dev/null | cut -f2)
-if [ -n "$TRACER_PID" ] && [ "$TRACER_PID" != "0" ]; then
-  TRACER_NAME=$(grep Name "/proc/$TRACER_PID/status" 2>/dev/null | cut -f2)
-  if [ "$TRACER_NAME" = "proot" ]; then
-    die "Nested proot detected -- do NOT run this script inside another proot instance"
-  fi
-fi
+# NOTE: proot-distro login ubuntu uses proot, so TracerPid is always
+# non-zero inside the container. This is NORMAL — not nested proot.
+# No nested-proot check needed here.
 
 [ -d "$HOME_DIR" ] || die "\$HOME is not writable: $HOME_DIR"
 
