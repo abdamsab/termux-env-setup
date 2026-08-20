@@ -219,6 +219,11 @@ ok "all system packages and tools installed"
 # Step 3 -- pip configuration
 # =====================================================================
 say "Step 3/10: pip configuration"
+# Ubuntu 24.04+ marks system Python as "externally managed" (PEP 668).
+# In a proot container this restriction is unnecessary -- remove it.
+rm -f /usr/lib/python3*/EXTERNALLY-MANAGED 2>/dev/null || true
+say "removed EXTERNALLY-MANAGED marker (PEP 668 workaround for proot)"
+
 mkdir -p "$HOME_DIR/.config/pip"
 # Standard PyPI works for all packages on Ubuntu (glibc, native wheels).
 # No TUR index needed -- that's a Termux-specific prebuilt wheel source.
@@ -272,7 +277,14 @@ if [ ! -d "$HOME_DIR/hermes-agent/.git" ]; then
   # Pin-safe fetch: a plain --depth 1 clone would only contain the current
   # main tip, and the pinned commit may have fallen behind it. Fetch the
   # exact commit instead.
-  git clone --filter=blob:none --no-checkout https://github.com/nousresearch/hermes-agent.git "$HOME_DIR/hermes-agent"
+  CLONE_OK=0
+  for attempt in 1 2 3; do
+    git clone --filter=blob:none --no-checkout https://github.com/nousresearch/hermes-agent.git "$HOME_DIR/hermes-agent" 2>/dev/null && { CLONE_OK=1; break; }
+    warn "git clone failed (attempt $attempt/3) -- retrying in 10s"
+    rm -rf "$HOME_DIR/hermes-agent" 2>/dev/null
+    sleep 10
+  done
+  [ "$CLONE_OK" -eq 1 ] || die "git clone hermes-agent failed after 3 attempts (GitHub rate limit?)"
   git -C "$HOME_DIR/hermes-agent" fetch --depth 1 origin 2446c8bb6755ff5e6feff4d26e425661edd4019b
   git -C "$HOME_DIR/hermes-agent" -c advice.detachedHead=false checkout 2446c8bb6755ff5e6feff4d26e425661edd4019b
 fi
@@ -327,7 +339,7 @@ if [ -z "${SETUP_NO_SERVICES:-}" ]; then
     PG_CLUST=$(echo "$PG_LINE" | awk '{print $2}')
   else
     # No cluster exists yet -- create one
-    PG_VER=$(dpkg -l postgresql 2>/dev/null | grep ^ii | awk '{print $3}' | sed 's/postgresql-\([0-9]*\).*/\1/')
+    PG_VER=$(dpkg -l postgresql 2>/dev/null | grep ^ii | awk '{print $3}' | sed 's/^\([0-9]*\).*/\1/')
     PG_VER="${PG_VER:-16}"
     PG_CLUST="main"
     say "creating PostgreSQL cluster (ver=$PG_VER)"
