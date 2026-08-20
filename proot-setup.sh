@@ -67,7 +67,7 @@ python3 python3-pip python3-dev python3-venv
 rustc cargo llvm-dev lld nodejs npm
 openjdk-17-jdk golang-go postgresql postgresql-common
 ffmpeg openssh-server openssh-sftp-server
-tmux micro nano neofetch net-tools
+tmux micro nano fastfetch net-tools
 ripgrep jq curl wget unzip dos2unix git patchelf unixodbc
 software-properties-common gfortran"
   miss=0
@@ -173,7 +173,7 @@ apt-get install -y \
   postgresql postgresql-common \
   ffmpeg \
   openssh-server openssh-sftp-server \
-  tmux micro nano neofetch net-tools \
+  tmux micro nano fastfetch net-tools \
   ripgrep jq curl wget unzip dos2unix git patchelf unixodbc \
   software-properties-common gfortran \
   || die "apt install failed -- check network and re-run"
