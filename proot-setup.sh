@@ -231,7 +231,9 @@ cat > "$HOME_DIR/.config/pip/pip.conf" <<EOF
 [global]
 disable-pip-version-check = true
 EOF
-python3 -m pip install --upgrade pip
+# --ignore-installed: Debian packages lack RECORD files, so pip cannot
+# uninstall them. This flag installs on top without uninstalling first.
+python3 -m pip install --ignore-installed --upgrade pip
 
 # =====================================================================
 # Step 4 -- JupyterLab + marimo + data/AI stack (compiles native wheels)
@@ -240,7 +242,10 @@ say "Step 4/10: JupyterLab, marimo and the Python data/AI stack"
 say "All packages compile from standard PyPI wheels (no TUR needed)."
 say "It can take 10-30 minutes on a phone. Do NOT interrupt."
 
-pip install jupyterlab marimo soccerdata seleniumbase edge-tts openai \
+# --ignore-installed: Debian-packaged system packages (typing-extensions, etc.)
+# lack RECORD files, so pip can't uninstall them. This flag installs on top.
+pip install --ignore-installed \
+  jupyterlab marimo soccerdata seleniumbase edge-tts openai \
   fastapi uvicorn httpx websockets orjson rich requests tqdm PyYAML \
   ruamel.yaml tomlkit croniter python-dotenv PyJWT PyOTP PySocks \
   wrapper-tls-requests tabulate behave pytest pytest-html pytest-xdist \
@@ -249,7 +254,7 @@ pip install jupyterlab marimo soccerdata seleniumbase edge-tts openai \
   jupyterlab-lsp python-lsp-server
 
 if [ -z "${SETUP_SKIP_OPTD:-}" ]; then
-  pip install mycdp msgspec narwhals tabcompleter annotated-doc fasteners \
+  pip install --ignore-installed mycdp msgspec narwhals tabcompleter annotated-doc fasteners \
     Unidecode sbvirtualdisplay sortedcontainers tenacity termcolor trio \
     trio-websocket socksio wsproto watchfiles uvloop fire docutils
 fi
@@ -257,7 +262,7 @@ fi
 # Optional scientific stack (scipy builds natively on Ubuntu with gfortran)
 if [ -n "${SETUP_SCI_STACK:-}" ]; then
   say "SETUP_SCI_STACK=1: installing scipy"
-  pip install scipy || warn "pip install scipy failed"
+  pip install --ignore-installed scipy || warn "pip install scipy failed"
 fi
 
 python3 -c "import jupyterlab, zmq, tornado, marimo; print('JupyterLab', jupyterlab.__version__)" \
@@ -274,27 +279,35 @@ python3 -m pip cache purge || true
 hash -r 2>/dev/null || true
 
 if [ ! -d "$HOME_DIR/hermes-agent/.git" ]; then
-  # Pin-safe fetch: a plain --depth 1 clone would only contain the current
-  # main tip, and the pinned commit may have fallen behind it. Fetch the
-  # exact commit instead.
+  # Shallow clone; 200 commits covers most pinned SHAs within a few months.
   CLONE_OK=0
   for attempt in 1 2 3; do
-    git clone --filter=blob:none --no-checkout https://github.com/nousresearch/hermes-agent.git "$HOME_DIR/hermes-agent" 2>/dev/null && { CLONE_OK=1; break; }
+    rm -rf "$HOME_DIR/hermes-agent" 2>/dev/null
+    git clone --depth 200 https://github.com/nousresearch/hermes-agent.git "$HOME_DIR/hermes-agent" 2>/dev/null && { CLONE_OK=1; break; }
     warn "git clone failed (attempt $attempt/3) -- retrying in 10s"
     rm -rf "$HOME_DIR/hermes-agent" 2>/dev/null
     sleep 10
   done
   [ "$CLONE_OK" -eq 1 ] || die "git clone hermes-agent failed after 3 attempts (GitHub rate limit?)"
-  git -C "$HOME_DIR/hermes-agent" fetch --depth 1 origin 2446c8bb6755ff5e6feff4d26e425661edd4019b
-  git -C "$HOME_DIR/hermes-agent" -c advice.detachedHead=false checkout 2446c8bb6755ff5e6feff4d26e425661edd4019b
 fi
 cd "$HOME_DIR/hermes-agent"
-# relax Python ceiling if upstream still pins <3.14 (current repo: <3.15)
-if grep -q '>=3.11,<3.14' pyproject.toml; then
-  sed -i 's/>=3.11,<3.14/>=3.11,<3.15/' pyproject.toml
-  ok "patched pyproject.toml Python ceiling to <3.15"
+# If pinned commit isn't in the shallow clone, deepen or fetch it
+if ! git cat-file -e 2446c8bb6755ff5e6feff4d26e425661edd4019b 2>/dev/null; then
+  say "pinned commit not in shallow clone -- deepening"
+  git fetch --deepen 500 2>/dev/null || git fetch origin 2446c8bb6755ff5e6feff4d26e425661edd4019b 2>/dev/null || true
 fi
-pip install -e .
+git checkout 2446c8bb6755ff5e6feff4d26e425661edd4019b 2>/dev/null \
+  || warn "checkout pinned commit failed -- using current HEAD"
+# relax Python ceiling if upstream still pins <3.14 (current repo: <3.15)
+if [ -f pyproject.toml ]; then
+  if grep -q '>=3.11,<3.14' pyproject.toml; then
+    sed -i 's/>=3.11,<3.14/>=3.11,<3.15/' pyproject.toml
+    ok "patched pyproject.toml Python ceiling to <3.15"
+  fi
+  pip install --ignore-installed -e .
+else
+  warn "pyproject.toml not found -- hermes-agent install skipped"
+fi
 hermes --version || warn "hermes --version failed"
 
 # =====================================================================
@@ -343,8 +356,19 @@ if [ -z "${SETUP_NO_SERVICES:-}" ]; then
     PG_VER="${PG_VER:-16}"
     PG_CLUST="main"
     say "creating PostgreSQL cluster (ver=$PG_VER)"
-    pg_createcluster "$PG_VER" "$PG_CLUST" -- --auth-local=trust --auth-host=md5 2>/dev/null \
+
+    # Ensure the data directory parent exists
+    mkdir -p "/var/lib/postgresql/$PG_VER/$PG_CLUST" 2>/dev/null || true
+
+    pg_createcluster "$PG_VER" "$PG_CLUST" -- --auth-local=trust --auth-host=md5 \
+      || pg_ctlcluster "$PG_VER" "$PG_CLUST" start \
       || warn "pg_createcluster failed -- try: pg_ctlcluster $PG_VER $PG_CLUST start"
+    # Re-read cluster info after creation
+    PG_LINE=$(pg_lsclusters -h 2>/dev/null | head -1)
+    if [ -n "$PG_LINE" ]; then
+      PG_VER=$(echo "$PG_LINE" | awk '{print $1}')
+      PG_CLUST=$(echo "$PG_LINE" | awk '{print $2}')
+    fi
   fi
 
   # Start PostgreSQL
@@ -593,7 +617,7 @@ say "Step 10/10: verification"
   echo "--- lsp ---";     pylsp --version 2>/dev/null || true
   echo "--- marimo ---";  marimo --version 2>/dev/null || true
   echo "--- native modules ---"
-  python3 -c "import PIL, pydantic, zmq; print('PIL', PIL.__version__, '| pydantic', pydantic.VERSION)" 2>&1 || true
+  python3 -c "import pydantic, zmq; print('pydantic', pydantic.VERSION, '| zmq', zmq.__version__)" 2>&1 || true
   [ -n "${SETUP_SCI_STACK:-}" ] && echo "--- scipy ---"
   [ -n "${SETUP_SCI_STACK:-}" ] && python3 -c "import scipy; print('scipy', scipy.__version__)" 2>&1 || true
   echo "--- hermes ---";  hermes --version 2>/dev/null || true
