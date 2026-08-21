@@ -91,6 +91,19 @@ proot-distro copy --move ~/archive.tar ubuntu:/tmp/
 proot-distro copy -r --force ~/dotfiles ubuntu:/root/
 ```
 
+### Prerequisite: no active proot session
+
+`proot-distro copy` fails with **"container is busy"** if a `proot-distro
+login` session is running for that distro. Kill it first:
+
+```bash
+proot-distro kill ubuntu
+proot-distro copy -r ~/soccerstat ubuntu:/root/match_prediction
+```
+
+If you need to copy while a session is active, use direct `cp` against the
+rootfs instead (Method 2) — that works even with a live session.
+
 ### Container name
 
 The container name is the distro name you installed. Default is `ubuntu`. If
